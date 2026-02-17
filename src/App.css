@@ -1,0 +1,1100 @@
+import { useState, useEffect, useRef } from "react";
+
+// ── PALETA Y ESTILOS GLOBALES ──────────────────────────────────────────────
+const STYLE = `
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --gold:#C9A84C; --gold-light:#E8C96A; --gold-dark:#9A7A2E;
+  --forest:#1A3A2A; --forest-mid:#2D5A40; --forest-light:#3D7A55;
+  --sand:#F5EDD8; --sand-dark:#E8D9BE; --sand-deeper:#D4C09A;
+  --red-ve:#CF142B; --blue-ve:#00247D;
+  --dark:#0E1F18; --mid:#1D3828; --card:#213D2E;
+  --text:#F0EAD6; --text-muted:#A8C4A8; --text-dim:#6A8A6A;
+  --radius:14px; --radius-sm:8px; --shadow:0 8px 32px rgba(0,0,0,.45);
+}
+body { font-family:'DM Sans',sans-serif; background:var(--dark); color:var(--text); min-height:100vh; overflow-x:hidden; }
+h1,h2,h3,h4,h5 { font-family:'Playfair Display',serif; }
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:var(--dark);}
+::-webkit-scrollbar-thumb{background:var(--forest-mid);border-radius:3px;}
+
+/* ── NAVBAR ── */
+.navbar {
+  position:fixed; top:0; left:0; right:0; z-index:999;
+  background:rgba(14,31,24,.92); backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(201,168,76,.2);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 2rem; height:64px;
+}
+.navbar-brand { display:flex; align-items:center; gap:10px; cursor:pointer; }
+.brand-flag { display:flex; flex-direction:column; width:24px; height:18px; border-radius:3px; overflow:hidden; }
+.brand-flag span { flex:1; }
+.brand-flag span:nth-child(1){background:#CF142B;}
+.brand-flag span:nth-child(2){background:#F9E300;}
+.brand-flag span:nth-child(3){background:#00247D;}
+.brand-name { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:900; color:var(--gold); letter-spacing:.5px; }
+.brand-sub { font-size:.65rem; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; line-height:1; }
+.nav-links { display:flex; gap:.25rem; }
+.nav-btn {
+  background:none; border:none; color:var(--text-muted); font-family:'DM Sans',sans-serif;
+  font-size:.82rem; padding:.45rem .85rem; border-radius:var(--radius-sm); cursor:pointer;
+  transition:.2s; letter-spacing:.3px; font-weight:500;
+}
+.nav-btn:hover,.nav-btn.active { color:var(--gold); background:rgba(201,168,76,.1); }
+.nav-actions { display:flex; gap:.5rem; align-items:center; }
+.btn-admin {
+  background:linear-gradient(135deg,var(--gold-dark),var(--gold));
+  color:var(--dark); border:none; font-family:'DM Sans',sans-serif;
+  font-size:.8rem; font-weight:700; padding:.45rem 1rem;
+  border-radius:var(--radius-sm); cursor:pointer; transition:.2s;
+  letter-spacing:.5px; text-transform:uppercase;
+}
+.btn-admin:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(201,168,76,.4); }
+
+/* ── HERO ── */
+.hero {
+  min-height:100vh; position:relative; display:flex; align-items:center;
+  background:linear-gradient(160deg, #0E1F18 0%, #1A3A2A 40%, #0E2218 100%);
+  overflow:hidden; padding-top:64px;
+}
+.hero-bg-pattern {
+  position:absolute; inset:0; opacity:.04;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(201,168,76,.6) 40px),
+    repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(201,168,76,.6) 40px);
+}
+.hero-glow {
+  position:absolute; top:10%; right:-5%; width:600px; height:600px; border-radius:50%;
+  background:radial-gradient(circle,rgba(61,122,85,.25) 0%,transparent 70%); pointer-events:none;
+}
+.hero-glow2 {
+  position:absolute; bottom:-10%; left:-5%; width:500px; height:500px; border-radius:50%;
+  background:radial-gradient(circle,rgba(201,168,76,.1) 0%,transparent 70%); pointer-events:none;
+}
+.hero-content { position:relative; max-width:1200px; margin:0 auto; padding:4rem 2rem; display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:center; }
+.hero-tag { display:inline-flex; align-items:center; gap:.5rem; background:rgba(201,168,76,.12); border:1px solid rgba(201,168,76,.3); border-radius:50px; padding:.35rem 1rem; font-size:.75rem; color:var(--gold); letter-spacing:1px; text-transform:uppercase; margin-bottom:1.5rem; }
+.hero-title { font-size:clamp(2.8rem,5vw,4.5rem); font-weight:900; line-height:1.05; margin-bottom:1.5rem; }
+.hero-title em { font-style:normal; color:var(--gold); }
+.hero-desc { color:var(--text-muted); line-height:1.7; font-size:1.05rem; margin-bottom:2.5rem; max-width:480px; }
+.hero-btns { display:flex; gap:1rem; flex-wrap:wrap; }
+.btn-primary {
+  background:linear-gradient(135deg,var(--gold-dark),var(--gold-light));
+  color:var(--dark); border:none; font-family:'DM Sans',sans-serif; font-weight:700;
+  font-size:.95rem; padding:.85rem 2rem; border-radius:var(--radius-sm); cursor:pointer;
+  transition:.25s; letter-spacing:.3px;
+}
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(201,168,76,.45); }
+.btn-outline {
+  background:none; border:1px solid rgba(201,168,76,.4); color:var(--gold);
+  font-family:'DM Sans',sans-serif; font-weight:600; font-size:.95rem;
+  padding:.85rem 2rem; border-radius:var(--radius-sm); cursor:pointer; transition:.25s;
+}
+.btn-outline:hover { background:rgba(201,168,76,.08); border-color:var(--gold); }
+.hero-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+.stat-card { background:rgba(45,90,64,.25); border:1px solid rgba(201,168,76,.15); border-radius:var(--radius); padding:1.5rem 1rem; text-align:center; }
+.stat-num { font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:900; color:var(--gold); }
+.stat-label { font-size:.78rem; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; margin-top:.25rem; }
+
+/* ── SECCIONES ── */
+.section { padding:5rem 2rem; max-width:1300px; margin:0 auto; }
+.section-header { text-align:center; margin-bottom:3.5rem; }
+.section-tag { display:inline-block; background:rgba(201,168,76,.1); border:1px solid rgba(201,168,76,.25); color:var(--gold); font-size:.72rem; letter-spacing:2px; text-transform:uppercase; padding:.3rem .9rem; border-radius:50px; margin-bottom:1rem; }
+.section-title { font-size:clamp(1.8rem,3.5vw,2.8rem); font-weight:900; margin-bottom:1rem; }
+.section-sub { color:var(--text-muted); font-size:1rem; max-width:600px; margin:0 auto; line-height:1.7; }
+.divider { height:1px; background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent); margin:0 2rem; }
+
+/* ── DESTINOS CARDS ── */
+.destinations-filters { display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin-bottom:2.5rem; }
+.filter-btn { background:rgba(45,90,64,.3); border:1px solid rgba(61,122,85,.3); color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:500; padding:.45rem 1.1rem; border-radius:50px; cursor:pointer; transition:.2s; }
+.filter-btn:hover,.filter-btn.active { background:var(--forest-mid); border-color:var(--gold); color:var(--gold); }
+.destinations-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1.5rem; }
+.dest-card {
+  background:var(--card); border:1px solid rgba(61,122,85,.2); border-radius:var(--radius);
+  overflow:hidden; cursor:pointer; transition:.3s; position:relative;
+}
+.dest-card:hover { transform:translateY(-4px); border-color:rgba(201,168,76,.4); box-shadow:var(--shadow); }
+.dest-img { height:200px; position:relative; overflow:hidden; }
+.dest-img-placeholder {
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  font-size:3.5rem;
+}
+.dest-badge { position:absolute; top:.75rem; left:.75rem; background:rgba(201,168,76,.9); color:var(--dark); font-size:.68rem; font-weight:700; padding:.2rem .6rem; border-radius:50px; letter-spacing:.5px; text-transform:uppercase; }
+.dest-body { padding:1.25rem; }
+.dest-tags { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.75rem; }
+.dest-tag { background:rgba(61,122,85,.25); color:var(--text-muted); font-size:.7rem; padding:.2rem .55rem; border-radius:50px; border:1px solid rgba(61,122,85,.3); }
+.dest-title { font-size:1.2rem; font-weight:700; margin-bottom:.4rem; color:var(--text); }
+.dest-loc { color:var(--text-dim); font-size:.82rem; display:flex; align-items:center; gap:.3rem; margin-bottom:.75rem; }
+.dest-desc { color:var(--text-muted); font-size:.85rem; line-height:1.6; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.dest-footer { padding:.85rem 1.25rem; border-top:1px solid rgba(61,122,85,.2); display:flex; align-items:center; justify-content:space-between; }
+.dest-arrow { color:var(--gold); font-size:1.2rem; }
+
+/* ── MODAL DETALLE ── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1000;
+  display:flex; align-items:flex-start; justify-content:center;
+  padding:2rem 1rem; overflow-y:auto; backdrop-filter:blur(4px);
+  animation:fadeIn .2s ease;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-box {
+  background:var(--mid); border:1px solid rgba(201,168,76,.2); border-radius:var(--radius);
+  width:100%; max-width:900px; overflow:hidden; animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-header { position:relative; height:320px; overflow:hidden; }
+.modal-header-img { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:6rem; }
+.modal-header-overlay { position:absolute; inset:0; background:linear-gradient(to top,rgba(33,61,46,1) 0%,transparent 60%); }
+.modal-header-content { position:absolute; bottom:0; left:0; right:0; padding:2rem; }
+.modal-close { position:absolute; top:1rem; right:1rem; background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.2); color:#fff; width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:.2s; }
+.modal-close:hover{background:rgba(207,20,43,.7);}
+.modal-body { padding:2rem; }
+.modal-section { margin-bottom:2rem; }
+.modal-section h4 { color:var(--gold); font-size:.78rem; letter-spacing:2px; text-transform:uppercase; margin-bottom:.75rem; display:flex; align-items:center; gap:.5rem; }
+.modal-section p, .modal-section li { color:var(--text-muted); line-height:1.7; font-size:.9rem; }
+.modal-section ul { padding-left:1.2rem; }
+.modal-section li { margin-bottom:.3rem; }
+.modal-tags { display:flex; gap:.5rem; flex-wrap:wrap; }
+.modal-tag { background:rgba(201,168,76,.1); border:1px solid rgba(201,168,76,.3); color:var(--gold); font-size:.75rem; padding:.3rem .75rem; border-radius:50px; }
+.modal-allies { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:.75rem; margin-top:.75rem; }
+.ally-mini { background:rgba(14,31,24,.6); border:1px solid rgba(61,122,85,.2); border-radius:var(--radius-sm); padding:1rem; display:flex; align-items:center; gap:.75rem; }
+.ally-mini-icon { width:40px; height:40px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:1.4rem; background:rgba(45,90,64,.5); flex-shrink:0; }
+.ally-mini-info { min-width:0; }
+.ally-mini-name { font-size:.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ally-mini-cat { font-size:.7rem; color:var(--text-dim); }
+.map-placeholder { background:rgba(14,31,24,.6); border:1px solid rgba(61,122,85,.2); border-radius:var(--radius-sm); height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.75rem; margin-top:.75rem; }
+.map-placeholder-icon { font-size:2.5rem; }
+.map-placeholder p { color:var(--text-dim); font-size:.85rem; }
+.map-link { color:var(--gold); font-size:.85rem; text-decoration:none; border-bottom:1px dashed var(--gold-dark); }
+
+/* ── ALIADOS ── */
+.allies-tabs { display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin-bottom:2.5rem; }
+.allies-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.25rem; }
+.ally-card { background:var(--card); border:1px solid rgba(61,122,85,.2); border-radius:var(--radius); padding:1.5rem; transition:.3s; }
+.ally-card:hover { border-color:rgba(201,168,76,.4); transform:translateY(-3px); box-shadow:var(--shadow); }
+.ally-card-header { display:flex; align-items:center; gap:1rem; margin-bottom:1rem; }
+.ally-logo { width:56px; height:56px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:2rem; background:rgba(45,90,64,.4); border:1px solid rgba(61,122,85,.3); flex-shrink:0; }
+.ally-name { font-size:1.05rem; font-weight:700; }
+.ally-cat-badge { display:inline-block; background:rgba(201,168,76,.1); border:1px solid rgba(201,168,76,.25); color:var(--gold); font-size:.68rem; padding:.15rem .55rem; border-radius:50px; margin-top:.2rem; text-transform:uppercase; letter-spacing:.5px; }
+.ally-desc { color:var(--text-muted); font-size:.85rem; line-height:1.6; margin-bottom:1rem; }
+.ally-contact { display:flex; flex-direction:column; gap:.4rem; }
+.ally-contact a { color:var(--text-dim); font-size:.82rem; display:flex; align-items:center; gap:.5rem; text-decoration:none; transition:.15s; }
+.ally-contact a:hover{color:var(--gold);}
+.ally-destinations { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.75rem; padding-top:.75rem; border-top:1px solid rgba(61,122,85,.2); }
+.ally-dest-tag { background:rgba(61,122,85,.2); color:var(--text-muted); font-size:.68rem; padding:.15rem .5rem; border-radius:50px; }
+
+/* ── FORMULARIO CONSULTAS ── */
+.contact-grid { display:grid; grid-template-columns:1fr 1fr; gap:3rem; align-items:start; }
+.contact-info h3 { font-size:1.5rem; margin-bottom:1rem; }
+.contact-info p { color:var(--text-muted); line-height:1.7; margin-bottom:1.5rem; }
+.contact-features { display:flex; flex-direction:column; gap:.75rem; }
+.contact-feat { display:flex; align-items:center; gap:.75rem; color:var(--text-muted); font-size:.9rem; }
+.contact-feat span:first-child { font-size:1.2rem; }
+.form-card { background:var(--card); border:1px solid rgba(61,122,85,.2); border-radius:var(--radius); padding:2rem; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.form-group { margin-bottom:1.25rem; }
+.form-label { display:block; color:var(--text-muted); font-size:.8rem; font-weight:600; margin-bottom:.45rem; letter-spacing:.5px; text-transform:uppercase; }
+.form-input, .form-textarea, .form-select {
+  width:100%; background:rgba(14,31,24,.7); border:1px solid rgba(61,122,85,.3);
+  color:var(--text); font-family:'DM Sans',sans-serif; font-size:.9rem;
+  padding:.75rem 1rem; border-radius:var(--radius-sm); transition:.2s; outline:none;
+}
+.form-input:focus,.form-textarea:focus,.form-select:focus { border-color:var(--gold); background:rgba(14,31,24,.9); }
+.form-input::placeholder,.form-textarea::placeholder{color:var(--text-dim);}
+.form-textarea { resize:vertical; min-height:120px; }
+.form-select option { background:var(--dark); }
+.submit-btn {
+  width:100%; background:linear-gradient(135deg,var(--forest-mid),var(--forest-light));
+  border:1px solid rgba(201,168,76,.3); color:var(--text); font-family:'DM Sans',sans-serif;
+  font-weight:700; font-size:.95rem; padding:.9rem; border-radius:var(--radius-sm);
+  cursor:pointer; transition:.25s; letter-spacing:.5px;
+}
+.submit-btn:hover { background:linear-gradient(135deg,var(--forest-light),var(--gold-dark)); border-color:var(--gold); transform:translateY(-1px); }
+.success-msg { background:rgba(61,122,85,.2); border:1px solid rgba(61,122,85,.5); border-radius:var(--radius-sm); padding:1.25rem; text-align:center; color:var(--text-muted); font-size:.9rem; margin-top:1rem; }
+
+/* ── PAGOS ── */
+.payments-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1.25rem; margin-bottom:3rem; }
+.payment-card { background:var(--card); border:1px solid rgba(61,122,85,.2); border-radius:var(--radius); padding:1.5rem; }
+.payment-icon { font-size:2.2rem; margin-bottom:.75rem; }
+.payment-name { font-size:1rem; font-weight:700; margin-bottom:.5rem; }
+.payment-desc { color:var(--text-muted); font-size:.85rem; line-height:1.6; }
+.payment-status-section { background:var(--card); border:1px solid rgba(61,122,85,.2); border-radius:var(--radius); padding:2rem; margin-bottom:2rem; }
+.status-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:1rem; margin-top:1.25rem; }
+.status-badge { display:flex; align-items:center; gap:.75rem; padding:1rem; border-radius:var(--radius-sm); }
+.status-badge.pagado { background:rgba(39,174,96,.12); border:1px solid rgba(39,174,96,.3); }
+.status-badge.pendiente { background:rgba(243,156,18,.12); border:1px solid rgba(243,156,18,.3); }
+.status-badge.verificacion { background:rgba(52,152,219,.12); border:1px solid rgba(52,152,219,.3); }
+.status-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.status-dot.pagado{background:#27AE60;}
+.status-dot.pendiente{background:#F39C12;}
+.status-dot.verificacion{background:#3498DB;}
+.status-info .status-name { font-size:.85rem; font-weight:700; }
+.status-info .status-desc { font-size:.75rem; color:var(--text-muted); }
+.contrato-box { background:rgba(14,31,24,.8); border:1px solid rgba(201,168,76,.2); border-radius:var(--radius); padding:2rem; margin-top:2rem; }
+.contrato-box h3 { color:var(--gold); margin-bottom:1.5rem; display:flex; align-items:center; gap:.5rem; }
+.contrato-body { color:var(--text-muted); font-size:.85rem; line-height:1.8; }
+.contrato-body h4 { color:var(--text); font-size:.9rem; margin:1rem 0 .4rem; }
+.contrato-body p { margin-bottom:.75rem; }
+
+/* ── DASHBOARD ── */
+.metrics-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1.25rem; margin-bottom:3rem; }
+.metric-card { background:var(--card); border:1px solid rgba(61,122,85,.2); border-radius:var(--radius); padding:1.5rem; position:relative; overflow:hidden; }
+.metric-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+.metric-card.gold::before{background:linear-gradient(90deg,var(--gold-dark),var(--gold-light));}
+.metric-card.green::before{background:linear-gradient(90deg,var(--forest-mid),var(--forest-light));}
+.metric-card.blue::before{background:linear-gradient(90deg,#2980B9,#3498DB);}
+.metric-card.red::before{background:linear-gradient(90deg,#C0392B,#E74C3C);}
+.metric-icon { font-size:1.8rem; margin-bottom:.75rem; }
+.metric-val { font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:900; color:var(--gold); }
+.metric-label { color:var(--text-muted); font-size:.8rem; margin-top:.25rem; }
+.metric-trend { font-size:.75rem; color:#27AE60; margin-top:.5rem; }
+.charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem; }
+.chart-card { background:var(--card); border:1px solid rgba(61,122,85,.2); border-radius:var(--radius); padding:1.5rem; }
+.chart-card h4 { font-size:.85rem; color:var(--gold); letter-spacing:1px; text-transform:uppercase; margin-bottom:1.25rem; }
+.bar-chart { display:flex; flex-direction:column; gap:.75rem; }
+.bar-row { display:flex; align-items:center; gap:.75rem; }
+.bar-label { color:var(--text-muted); font-size:.78rem; width:80px; flex-shrink:0; text-align:right; }
+.bar-track { flex:1; height:24px; background:rgba(14,31,24,.6); border-radius:4px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:4px; display:flex; align-items:center; padding-left:.5rem; font-size:.72rem; font-weight:700; color:var(--dark); transition:width 1s ease; }
+.pie-chart-visual { display:flex; flex-direction:column; gap:.6rem; margin-top:.5rem; }
+.pie-row { display:flex; align-items:center; gap:.75rem; }
+.pie-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.pie-label { color:var(--text-muted); font-size:.82rem; flex:1; }
+.pie-val { color:var(--text); font-size:.82rem; font-weight:600; }
+.projection-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+.projection-table th { padding:.6rem 1rem; text-align:left; color:var(--gold); font-size:.75rem; letter-spacing:1px; text-transform:uppercase; border-bottom:1px solid rgba(61,122,85,.3); }
+.projection-table td { padding:.7rem 1rem; border-bottom:1px solid rgba(61,122,85,.15); color:var(--text-muted); }
+.projection-table tr:hover td{background:rgba(45,90,64,.2);}
+
+/* ── ADMIN PANEL ── */
+.admin-wrapper { display:grid; grid-template-columns:240px 1fr; min-height:100vh; padding-top:64px; }
+.admin-sidebar { background:rgba(14,31,24,.95); border-right:1px solid rgba(61,122,85,.2); padding:2rem 1rem; position:fixed; top:64px; left:0; bottom:0; width:240px; overflow-y:auto; z-index:100; }
+.admin-logo { padding:.75rem .5rem 1.5rem; border-bottom:1px solid rgba(61,122,85,.2); margin-bottom:1rem; }
+.admin-logo p { color:var(--text-muted); font-size:.75rem; margin-top:.25rem; }
+.sidebar-menu { display:flex; flex-direction:column; gap:.25rem; }
+.sidebar-item { display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; border-radius:var(--radius-sm); cursor:pointer; color:var(--text-muted); font-size:.85rem; font-weight:500; transition:.2s; border:none; background:none; width:100%; text-align:left; }
+.sidebar-item:hover { background:rgba(45,90,64,.3); color:var(--text); }
+.sidebar-item.active { background:rgba(45,90,64,.5); color:var(--gold); border-left:3px solid var(--gold); }
+.sidebar-item span:first-child { font-size:1.1rem; width:20px; text-align:center; flex-shrink:0; }
+.sidebar-badge { margin-left:auto; background:var(--red-ve); color:#fff; font-size:.65rem; font-weight:700; padding:.1rem .45rem; border-radius:50px; }
+.admin-content { margin-left:240px; padding:2rem; min-height:calc(100vh - 64px); }
+.admin-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; }
+.admin-header h2 { font-size:1.5rem; }
+.admin-actions { display:flex; gap:.75rem; }
+.btn-action { background:rgba(45,90,64,.4); border:1px solid rgba(61,122,85,.3); color:var(--text); font-family:'DM Sans',sans-serif; font-size:.82rem; padding:.55rem 1.1rem; border-radius:var(--radius-sm); cursor:pointer; transition:.2s; display:flex; align-items:center; gap:.4rem; }
+.btn-action:hover{border-color:var(--gold);color:var(--gold);}
+.btn-action.primary{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--dark);border-color:transparent;font-weight:700;}
+.btn-action.primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(201,168,76,.4);}
+
+/* ── BANDEJA MENSAJES ── */
+.inbox-grid { display:grid; grid-template-columns:1fr 1.5fr; gap:1.5rem; }
+.inbox-list { background:var(--card); border:1px solid rgba(61,122,85,.2); border-radius:var(--radius); overflow:hidden; }
+.inbox-item { padding:1rem 1.25rem; border-bottom:1px solid rgba(61,122,85,.15); cursor:pointer; transition:.15s; position:relative; }
+.inbox-item:hover{background:rgba(45,90,64,.3);}
+.inbox-item.active{background:rgba(45,90,64,.5);border-left:3px solid var(--gold);}
+.inbox-item.unread::before{content:'';position:absolute;top:1rem;right:1rem;width:8px;height:8px;background:var(--gold);border-radius:50%;}
+.inbox-sender{font-size:.88rem;font-weight:600;color:var(--text);margin-bottom:.2rem;}
+.inbox-preview{font-size:.78rem;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inbox-time{font-size:.7rem;color:var(--text-dim);margin-top:.25rem;}
+.inbox-detail{background:var(--card);border:1px solid rgba(61,122,85,.2);border-radius:var(--radius);padding:1.5rem;}
+.inbox-detail-header{border-bottom:1px solid rgba(61,122,85,.2);padding-bottom:1rem;margin-bottom:1.5rem;}
+.inbox-detail-header h3{font-size:1.1rem;margin-bottom:.5rem;}
+.inbox-meta{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-bottom:.75rem;}
+.inbox-meta-item{font-size:.8rem;color:var(--text-muted);}
+.inbox-meta-item strong{color:var(--text);}
+.inbox-message{color:var(--text-muted);font-size:.9rem;line-height:1.7;margin-bottom:1.5rem;}
+.inbox-status-row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;}
+.status-sel{background:rgba(14,31,24,.7);border:1px solid rgba(61,122,85,.3);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;padding:.45rem .8rem;border-radius:var(--radius-sm);cursor:pointer;}
+.btn-managed{background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#2ECC71;font-family:'DM Sans',sans-serif;font-size:.82rem;padding:.45rem 1rem;border-radius:var(--radius-sm);cursor:pointer;transition:.15s;}
+.btn-managed:hover{background:rgba(39,174,96,.25);}
+
+/* ── FORM AGREGAR DESTINO ── */
+.add-form{background:var(--card);border:1px solid rgba(61,122,85,.2);border-radius:var(--radius);padding:2rem;max-width:800px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+
+/* ── LOGIN ── */
+.login-wrapper{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--dark);padding:2rem;}
+.login-box{background:var(--card);border:1px solid rgba(201,168,76,.2);border-radius:var(--radius);padding:2.5rem;width:100%;max-width:420px;}
+.login-title{text-align:center;font-size:1.6rem;margin-bottom:.5rem;}
+.login-sub{text-align:center;color:var(--text-muted);font-size:.85rem;margin-bottom:2rem;}
+.login-err{background:rgba(207,20,43,.15);border:1px solid rgba(207,20,43,.3);color:#E74C3C;font-size:.82rem;padding:.75rem;border-radius:var(--radius-sm);margin-top:.75rem;text-align:center;}
+
+/* ── FOOTER ── */
+.footer{background:rgba(14,31,24,.95);border-top:1px solid rgba(61,122,85,.2);padding:3rem 2rem 1.5rem;}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:2rem;max-width:1200px;margin:0 auto 2rem;}
+.footer-brand p{color:var(--text-muted);font-size:.85rem;line-height:1.7;margin-top:.75rem;max-width:280px;}
+.footer-col h4{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:1rem;}
+.footer-col a{display:block;color:var(--text-muted);font-size:.85rem;text-decoration:none;margin-bottom:.45rem;transition:.15s;}
+.footer-col a:hover{color:var(--gold);}
+.footer-bottom{border-top:1px solid rgba(61,122,85,.2);padding-top:1.5rem;text-align:center;color:var(--text-dim);font-size:.8rem;max-width:1200px;margin:0 auto;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .hero-content{grid-template-columns:1fr;gap:2rem;}
+  .contact-grid,.charts-grid,.inbox-grid{grid-template-columns:1fr;}
+  .footer-grid{grid-template-columns:1fr 1fr;}
+  .form-row,.form-grid{grid-template-columns:1fr;}
+  .admin-wrapper{grid-template-columns:1fr;}
+  .admin-sidebar{display:none;}
+  .admin-content{margin-left:0;}
+}
+@media(max-width:600px){
+  .nav-links{display:none;}
+  .hero-stats{grid-template-columns:1fr 1fr;}
+  .modal-box{margin:.5rem;}
+  .footer-grid{grid-template-columns:1fr;}
+}
+`;
+
+// ── DATOS INICIALES ────────────────────────────────────────────────────────
+const INIT_DESTINATIONS = [
+  {
+    id:1, title:"Salto Ángel", state:"Bolívar", municipality:"Gran Sabana",
+    category:"Naturaleza", tags:["Cascada","Selva","Aventura"],
+    emoji:"🌊", color:"#1A3A5C",
+    description:"El Salto Ángel (Kerepakupai Merú) es la cascada más alta del mundo con 979 metros de caída libre. Declarado Patrimonio de la Humanidad, se encuentra en el Parque Nacional Canaima, en el corazón de la Guayana venezolana.",
+    access:"Vuelo desde Ciudad Bolívar o Puerto Ordaz hacia Canaima. Desde Canaima se accede en curiara (bote tradicional) por los ríos Carrao y Churún. También existen tours en helicóptero.",
+    nearbyPlaces:["Laguna de Canaima","Playa Orchid","Isla Anatouy","Salto Sapo","Tepuy Auyán"],
+    mapQuery:"Salto Ángel Venezuela",
+    allies:[1,3]
+  },
+  {
+    id:2, title:"Los Roques", state:"Dependencias Federales", municipality:"Los Roques",
+    category:"Playa", tags:["Playa","Arrecife","Buceo","Kite"],
+    emoji:"🏝️", color:"#0A4A4A",
+    description:"Archipiélago de Los Roques es el parque nacional marino más grande de Venezuela y el Caribe. Formado por más de 300 islotes y cayos, sus aguas turquesas y arrecifes de coral lo convierten en un paraíso del snorkel, buceo y kitesurf.",
+    access:"Vuelo chárter desde Caracas (Aeropuerto La Carlota o Maiquetía) con aerolíneas como Aerotuy, Rutaca o Conviasa. Aproximadamente 45 minutos de vuelo.",
+    nearbyPlaces:["Gran Roque","Cayo Francisquí","Cayo Madrisquí","Cayo Dos Mosquises","Crasqui"],
+    mapQuery:"Los Roques Venezuela",
+    allies:[2,4]
+  },
+  {
+    id:3, title:"Mérida y Los Andes", state:"Mérida", municipality:"Libertador",
+    category:"Montaña", tags:["Montaña","Teleférico","Nieve","Ciudad"],
+    emoji:"⛰️", color:"#2A3A2A",
+    description:"La ciudad universitaria de Mérida es la puerta de entrada a la Cordillera de los Andes venezolanos. Ofrece el teleférico más alto del mundo, picos nevados como el Bolívar (4.978 m), páramos y una vibrante vida cultural.",
+    access:"Vuelo a Aeropuerto Alberto Carnevali (MRD) desde Caracas o Valencia. Por tierra, carretera transandina desde Barinas (6h) o Caracas (10h). Autobuses disponibles desde La Bandera.",
+    nearbyPlaces:["Pico Bolívar","Mucuchies","Valle de los Frailecitos","Laguna Mucubají","Pueblos del Sur"],
+    mapQuery:"Merida Venezuela",
+    allies:[3,5]
+  },
+  {
+    id:4, title:"Morrocoy", state:"Falcón", municipality:"Tucupido",
+    category:"Playa", tags:["Playa","Manglares","Snorkel","Pelicano"],
+    emoji:"🦩", color:"#1A3A4A",
+    description:"Parque Nacional Morrocoy, en el estado Falcón, ofrece cayos de arena blanca rodeados de manglares y aguas cristalinas del Mar Caribe. Sus arrecifes de coral y la abundante fauna incluyen flamencos y pelicanos.",
+    access:"Carretera hacia Tucacas o Chichiriviche desde Valencia (2h) o Caracas (4h). Lanchas disponibles en ambas ciudades para acceder a los cayos. También acceso desde Barquisimeto.",
+    nearbyPlaces:["Cayo Sombrero","Cayo Peraza","Cayo Borracho","Playa Mero","Chichiriviche"],
+    mapQuery:"Parque Nacional Morrocoy Venezuela",
+    allies:[2,4]
+  },
+  {
+    id:5, title:"Henri Pittier", state:"Aragua", municipality:"Girardot",
+    category:"Ecoturismo", tags:["Aves","Selva","Playa","Biodiversidad"],
+    emoji:"🦜", color:"#1A4A2A",
+    description:"El Parque Nacional Henri Pittier es el más antiguo de Venezuela y uno de los de mayor biodiversidad del mundo. Comprende desde los Andes hasta el litoral central, con más de 500 especies de aves y playas como Choroní y Cuyagua.",
+    access:"Desde Maracay por la carretera Maracay-Ocumare de la Costa. También acceso desde Valencia hacia Choroní. Transporte público desde Maracay hasta Ocumare o Choroní disponible diariamente.",
+    nearbyPlaces:["Choroní","Cuyagua","Puerto Colombia","Maracay","Laguna de Maracay"],
+    mapQuery:"Parque Nacional Henri Pittier Venezuela",
+    allies:[3,5]
+  },
+  {
+    id:6, title:"Ciudad Bolívar", state:"Bolívar", municipality:"Heres",
+    category:"Cultura", tags:["Historia","Colonial","Río Orinoco","Arquitectura"],
+    emoji:"🏛️", color:"#3A2A1A",
+    description:"Ciudad Bolívar, orilla del Orinoco, es una de las ciudades coloniales mejor conservadas de Venezuela. Centro histórico declarado Patrimonio Nacional, puerta de entrada a la Gran Sabana y Ciudad Guayana. Hogar del famoso puente sobre el Orinoco.",
+    access:"Aeropuerto Manuel Carlos Piar (CIU) con vuelos desde Caracas. Por carretera desde Puerto Ordaz (1h) o Caracas (8h) por la ruta troncal 19. Terminal de pasajeros con múltiples líneas.",
+    nearbyPlaces:["Orinoco","Angostura","Puente Angostura","Museo Casa San Isidro","Cerro El Zamuro"],
+    mapQuery:"Ciudad Bolívar Venezuela",
+    allies:[1,3]
+  }
+];
+
+const INIT_ALLIES = [
+  {id:1,name:"Aerotuy",category:"Aerolíneas",emoji:"✈️",description:"Aerolínea venezolana especializada en vuelos chárter hacia destinos turísticos como Los Roques y Canaima.",contact:{web:"www.aerotuy.com",email:"reservas@aerotuy.com",phone:"+58 212 761-6247"},destinations:[1,2]},
+  {id:2,name:"Hotel Melia Caracas",category:"Hoteles",emoji:"🏨",description:"Hotel de cinco estrellas en Caracas, punto de partida ideal para explorar Venezuela con servicio de concierge turístico.",contact:{web:"www.melia.com",email:"melia.caracas@melia.com",phone:"+58 212 762-8111"},destinations:[2,4]},
+  {id:3,name:"Cacao Expeditions",category:"Tours & Guías",emoji:"🧭",description:"Operador turístico con más de 20 años de experiencia en rutas por la Gran Sabana, Los Andes y la Amazonía venezolana.",contact:{web:"www.cacaotravel.com",email:"info@cacaotravel.com",phone:"+58 212 977-1234"},destinations:[1,3,6]},
+  {id:4,name:"Posada Acuarela",category:"Hoteles",emoji:"🌺",description:"Posada boutique en Los Roques con vista al mar, desayuno incluido y servicio de guías locales de buceo y pesca.",contact:{web:"posadaacuarela.com",email:"info@posadaacuarela.com",phone:"+58 416 123-4567"},destinations:[2,4]},
+  {id:5,name:"La Trattoria Merideña",category:"Restaurantes",emoji:"🍽️",description:"Restaurante de alta gastronomía en Mérida fusionando cocina andina con técnicas internacionales. Premio Sabor Venezuela 2023.",contact:{web:"trattoriamerida.com",email:"reservas@trattoriamerida.com",phone:"+58 274 252-3456"},destinations:[3,5]},
+];
+
+const INIT_MESSAGES = [
+  {id:1,name:"Carlos Méndez",email:"carlos@empresa.com",phone:"+58 412 555-7890",company:"Agencia Viajes CR",message:"Estamos interesados en un paquete para 30 personas a Los Roques en junio. ¿Cuáles son las tarifas de alianza para agencias? Necesitamos hospedaje y traslados incluidos.",date:"2025-06-15 10:23",status:"Sin gestionar",read:false},
+  {id:2,name:"María González",email:"mgonzalez@hoteles.ve",phone:"+58 414 888-1234",company:"Hoteles Orinoco S.A.",message:"Queremos formalizar un convenio de aliado con DestinosVE. Tenemos 3 propiedades en diferentes estados.",date:"2025-06-14 15:45",status:"En proceso",read:true},
+  {id:3,name:"Pedro Sulbarán",email:"psulbaran@tours.com",phone:"+58 424 333-5678",company:"TourVen Expeditions",message:"Consulta sobre tarifas publicitarias para aparecer en las fichas de destino. Tenemos tours a Mérida y Gran Sabana.",date:"2025-06-13 09:10",status:"Gestionada",read:true},
+];
+
+// ── COMPONENTES ────────────────────────────────────────────────────────────
+
+function Navbar({ page, setPage, isAdmin, setShowAdmin }) {
+  return (
+    <nav className="navbar">
+      <div className="navbar-brand" onClick={()=>setPage("home")}>
+        <div className="brand-flag"><span/><span/><span/></div>
+        <div>
+          <div className="brand-name">DestinosVE</div>
+          <div className="brand-sub">Portal Turístico</div>
+        </div>
+      </div>
+      <div className="nav-links">
+        {[["home","Inicio"],["destinations","Destinos"],["allies","Alianzas"],["contact","Consultas"],["payments","Pagos"],["dashboard","Métricas"]].map(([p,l])=>(
+          <button key={p} className={`nav-btn ${page===p?"active":""}`} onClick={()=>setPage(p)}>{l}</button>
+        ))}
+      </div>
+      <div className="nav-actions">
+        <button className="btn-admin" onClick={()=>setPage("admin")}>
+          {isAdmin?"⚙ Panel Admin":"🔐 Admin"}
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+function Hero({ setPage }) {
+  return (
+    <section className="hero">
+      <div className="hero-bg-pattern"/>
+      <div className="hero-glow"/><div className="hero-glow2"/>
+      <div className="hero-content">
+        <div>
+          <div className="hero-tag">🇻🇪 &nbsp; Orgullosamente Venezolano</div>
+          <h1 className="hero-title">Descubre la <em>Magia</em> de Venezuela</h1>
+          <p className="hero-desc">Portal turístico oficial que conecta a viajeros con los destinos más impresionantes de Venezuela, unificando servicios de calidad bajo una red de alianzas estratégicas.</p>
+          <div className="hero-btns">
+            <button className="btn-primary" onClick={()=>setPage("destinations")}>🗺 Explorar Destinos</button>
+            <button className="btn-outline" onClick={()=>setPage("contact")}>✉ Contactar</button>
+          </div>
+        </div>
+        <div className="hero-stats">
+          {[["6+","Destinos activos"],["5","Aliados registrados"],["100%","Venezolano"],["7","Módulos del sistema"]].map(([n,l])=>(
+            <div key={l} className="stat-card">
+              <div className="stat-num">{n}</div>
+              <div className="stat-label">{l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Destinos cheveres 
+function Destinations({ destinations, allies }) {
+  const [filter, setFilter] = useState("Todos");
+  const [selected, setSelected] = useState(null);
+  const cats = ["Todos",...[...new Set(destinations.map(d=>d.category))]];
+  const filtered = filter==="Todos"?destinations:destinations.filter(d=>d.category===filter);
+  const destAllies = (d) => allies.filter(a=>d.allies&&d.allies.includes(a.id));
+
+  return (
+    <div className="section">
+      <div className="section-header">
+        <div className="section-tag">Módulo 01 — Catálogo</div>
+        <h2 className="section-title">Destinos y Recomendaciones</h2>
+        <p className="section-sub">Explora nuestra base de datos de destinos venezolanos. Cada ficha incluye información detallada, accesos y aliados vinculados.</p>
+      </div>
+      <div className="destinations-filters">
+        {cats.map(c=><button key={c} className={`filter-btn ${filter===c?"active":""}`} onClick={()=>setFilter(c)}>{c}</button>)}
+      </div>
+      <div className="destinations-grid">
+        {filtered.map(d=>(
+          <div key={d.id} className="dest-card" onClick={()=>setSelected(d)}>
+            <div className="dest-img"><div className="dest-img-placeholder" style={{background:`linear-gradient(135deg,${d.color}88,${d.color}44)`}}>{d.emoji}</div>
+              <span className="dest-badge">{d.category}</span>
+            </div>
+            <div className="dest-body">
+              <div className="dest-tags">{d.tags.map(t=><span key={t} className="dest-tag">{t}</span>)}</div>
+              <div className="dest-title">{d.title}</div>
+              <div className="dest-loc">📍 {d.state} — {d.municipality}</div>
+              <div className="dest-desc">{d.description}</div>
+            </div>
+            <div className="dest-footer"><span style={{color:"var(--text-muted)",fontSize:".8rem"}}>{destAllies(d).length} aliado(s) vinculado(s)</span><span className="dest-arrow">→</span></div>
+          </div>
+        ))}
+      </div>
+      {selected && (
+        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setSelected(null)}>
+          <div className="modal-box">
+            <div className="modal-header">
+              <div className="modal-header-img" style={{background:`linear-gradient(135deg,${selected.color}88,${selected.color}22)`}}>{selected.emoji}</div>
+              <div className="modal-header-overlay"/>
+              <button className="modal-close" onClick={()=>setSelected(null)}>✕</button>
+              <div className="modal-header-content">
+                <div className="dest-tags" style={{marginBottom:".5rem"}}>{selected.tags.map(t=><span key={t} className="dest-tag">{t}</span>)}</div>
+                <h2 style={{fontSize:"1.8rem",fontWeight:900}}>{selected.title}</h2>
+                <div className="dest-loc" style={{marginBottom:0}}>📍 {selected.state} — {selected.municipality}</div>
+              </div>
+            </div>
+            <div className="modal-body">
+              <div className="modal-section"><h4>📖 Descripción</h4><p>{selected.description}</p></div>
+              <div className="modal-section"><h4>🛣 Vías de Acceso</h4><p>{selected.access}</p></div>
+              <div className="modal-section"><h4>🗺 Lugares Cercanos</h4>
+                <div className="modal-tags">{selected.nearbyPlaces.map(p=><span key={p} className="modal-tag">📌 {p}</span>)}</div>
+              </div>
+              <div className="modal-section"><h4>🏷 Categorías</h4><div className="modal-tags">{selected.tags.map(t=><span key={t} className="modal-tag">{t}</span>)}</div></div>
+              <div className="modal-section"><h4>🤝 Aliados Vinculados</h4>
+                {destAllies(selected).length===0?<p style={{color:"var(--text-dim)"}}>No hay aliados vinculados aún</p>:
+                <div className="modal-allies">{destAllies(selected).map(a=>(
+                  <div key={a.id} className="ally-mini">
+                    <div className="ally-mini-icon">{a.emoji}</div>
+                    <div className="ally-mini-info"><div className="ally-mini-name">{a.name}</div><div className="ally-mini-cat">{a.category}</div></div>
+                  </div>
+                ))}</div>}
+              </div>
+              <div className="modal-section"><h4>🗺 Ubicación</h4>
+                <div className="map-placeholder">
+                  <div className="map-placeholder-icon">📍</div>
+                  <p>{selected.title}, {selected.state}, Venezuela</p>
+                  <a className="map-link" href={`https://www.google.com/maps/search/${encodeURIComponent(selected.mapQuery)}`} target="_blank" rel="noopener noreferrer">Abrir en Google Maps ↗</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Allies
+function Allies({ allies, destinations }) {
+  const [filter, setFilter] = useState("Todos");
+  const cats = ["Todos",...[...new Set(allies.map(a=>a.category))]];
+  const filtered = filter==="Todos"?allies:allies.filter(a=>a.category===filter);
+  const allyDests = (a) => destinations.filter(d=>a.destinations&&a.destinations.includes(d.id));
+
+  return (
+    <div className="section">
+      <div className="section-header">
+        <div className="section-tag">Módulo 02 — Red de Alianzas</div>
+        <h2 className="section-title">Directorio de Socios</h2>
+        <p className="section-sub">Red de prestadores de servicio vinculados a DestinosVE, clasificados por categoría y asociados a destinos específicos.</p>
+      </div>
+      <div className="allies-tabs">
+        {cats.map(c=><button key={c} className={`filter-btn ${filter===c?"active":""}`} onClick={()=>setFilter(c)}>{c}</button>)}
+      </div>
+      <div className="allies-grid">
+        {filtered.map(a=>(
+          <div key={a.id} className="ally-card">
+            <div className="ally-card-header">
+              <div className="ally-logo">{a.emoji}</div>
+              <div><div className="ally-name">{a.name}</div><span className="ally-cat-badge">{a.category}</span></div>
+            </div>
+            <p className="ally-desc">{a.description}</p>
+            <div className="ally-contact">
+              {a.contact.web&&<a href={`https://${a.contact.web}`} target="_blank" rel="noopener noreferrer">🌐 {a.contact.web}</a>}
+              {a.contact.email&&<a href={`mailto:${a.contact.email}`}>✉ {a.contact.email}</a>}
+              {a.contact.phone&&<a href={`tel:${a.contact.phone}`}>📞 {a.contact.phone}</a>}
+            </div>
+            {allyDests(a).length>0&&<div className="ally-destinations">{allyDests(a).map(d=><span key={d.id} className="ally-dest-tag">{d.emoji} {d.title}</span>)}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Contact
+function Contact({ onSubmit }) {
+  const [form,setForm] = useState({name:"",email:"",phone:"",company:"",message:""});
+  const [sent,setSent] = useState(false);
+  const [err,setErr] = useState("");
+  const handle = e => {
+    e.preventDefault();
+    if(!form.name||!form.email||!form.phone||!form.company||!form.message){setErr("Todos los campos son obligatorios.");return;}
+    onSubmit(form); setSent(true); setErr("");
+    setForm({name:"",email:"",phone:"",company:"",message:""});
+  };
+  return (
+    <div className="section">
+      <div className="section-header">
+        <div className="section-tag">Módulo 03 — Consultas</div>
+        <h2 className="section-title">Canal de Consultas y Negociación</h2>
+        <p className="section-sub">¿Interesado en establecer una alianza o solicitar información? Envíenos su consulta directamente.</p>
+      </div>
+      <div className="contact-grid">
+        <div className="contact-info">
+          <h3>Inicie su Negociación</h3>
+          <p>Todas las consultas son atendidas directamente por nuestro equipo de alianzas estratégicas. Respondemos en menos de 24 horas hábiles.</p>
+          <div className="contact-features">
+            {[["📥","Bandeja privada para el administrador"],["🔒","Datos protegidos y confidenciales"],["⚡","Respuesta en menos de 24 horas"],["🤝","Negociación directa sin intermediarios"],["📋","Seguimiento de su consulta en tiempo real"]].map(([i,t])=>(
+              <div key={t} className="contact-feat"><span>{i}</span><span>{t}</span></div>
+            ))}
+          </div>
+        </div>
+        <form className="form-card" onSubmit={handle}>
+          <div className="form-row">
+            <div className="form-group"><label className="form-label">Nombre Completo *</label><input className="form-input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Ej: Carlos Méndez"/></div>
+            <div className="form-group"><label className="form-label">Correo Electrónico *</label><input type="email" className="form-input" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="correo@empresa.com"/></div>
+          </div>
+          <div className="form-row">
+            <div className="form-group"><label className="form-label">Teléfono *</label><input className="form-input" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="+58 412 000-0000"/></div>
+            <div className="form-group"><label className="form-label">Empresa *</label><input className="form-input" value={form.company} onChange={e=>setForm({...form,company:e.target.value})} placeholder="Nombre de su empresa"/></div>
+          </div>
+          <div className="form-group"><label className="form-label">Mensaje *</label><textarea className="form-textarea" value={form.message} onChange={e=>setForm({...form,message:e.target.value})} placeholder="Describa su consulta o propuesta de alianza..."/></div>
+          {err&&<p style={{color:"#E74C3C",fontSize:".82rem",marginBottom:".75rem"}}>⚠ {err}</p>}
+          {sent&&<div className="success-msg">✅ Mensaje enviado correctamente. Un representante lo contactará pronto.</div>}
+          <button type="submit" className="submit-btn" style={{marginTop:"1rem"}}>📤 Enviar Consulta</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Payments
+function Payments() {
+  const methods = [
+    {icon:"🏦",name:"Transferencia Bancaria",desc:"Transferencias en bolívares y divisas a través de bancos venezolanos (Banesco, Mercantil, BBVA Provincial, BNC)."},
+    {icon:"💵",name:"Divisas (USD / EUR)",desc:"Pago en efectivo o transferencia en dólares americanos o euros, según tasa oficial BCV del día de la transacción."},
+    {icon:"📱",name:"Plataformas Digitales",desc:"Zelle (USA), Binance Pay (USDT), PayPal, y otras plataformas de pago electrónico previo acuerdo."},
+    {icon:"🇻🇪",name:"Pago Móvil",desc:"Pago Móvil Interbancario venezolano disponible para montos en bolívares dentro del territorio nacional."},
+  ];
+  const statuses = [
+    {cls:"pagado",dot:"pagado",name:"✅ Pagado",desc:"Monto total recibido y verificado"},
+    {cls:"pendiente",dot:"pendiente",name:"⚠ Cuota Pendiente",desc:"Pago parcial recibido; saldo pendiente"},
+    {cls:"verificacion",dot:"verificacion",name:"🔄 En Verificación",desc:"Comprobante enviado, pendiente confirmar"},
+  ];
+  return (
+    <div className="section">
+      <div className="section-header">
+        <div className="section-tag">Módulo 04 — Pagos y Convenios</div>
+        <h2 className="section-title">Gestión de Pagos, Tratos y Convenios</h2>
+        <p className="section-sub">Métodos de pago aceptados, estado de transacciones y condiciones contractuales de los acuerdos comerciales.</p>
+      </div>
+      <div style={{marginBottom:"2rem"}}>
+        <h3 style={{marginBottom:"1.25rem",fontSize:"1.2rem"}}>💳 Métodos de Pago Aceptados</h3>
+        <div className="payments-grid">
+          {methods.map(m=><div key={m.name} className="payment-card"><div className="payment-icon">{m.icon}</div><div className="payment-name">{m.name}</div><p className="payment-desc">{m.desc}</p></div>)}
+        </div>
+      </div>
+      <div className="payment-status-section">
+        <h3 style={{fontSize:"1.1rem",marginBottom:".25rem"}}>📊 Estatus de Transacción</h3>
+        <p style={{color:"var(--text-muted)",fontSize:".85rem",marginBottom:"1rem"}}>Cada operación en DestinosVE tiene asignado un estatus para identificar la etapa de pago:</p>
+        <div className="status-grid">
+          {statuses.map(s=>(
+            <div key={s.name} className={`status-badge ${s.cls}`}>
+              <div className={`status-dot ${s.dot}`}/>
+              <div className="status-info"><div className="status-name">{s.name}</div><div className="status-desc">{s.desc}</div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{background:"var(--card)",border:"1px solid rgba(61,122,85,.2)",borderRadius:"var(--radius)",padding:"1.5rem",marginTop:"1.5rem"}}>
+        <h3 style={{fontSize:"1.1rem",marginBottom:"1rem"}}>🤝 Tipos de Convenios</h3>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"1rem"}}>
+          {[["📣","Alianza Publicitaria","Inclusión del logo, datos y links del socio en destinos vinculados de la plataforma."],["📦","Paquete Turístico","Acuerdo para venta conjunta de experiencias y servicios bajo una tarifa negociada."],["🔗","Vinculación de Destino","Asociación del aliado a destinos específicos con comisión por cada lead generado."],["📋","Contrato Marco","Acuerdo general a largo plazo con renovación semestral o anual."]].map(([i,n,d])=>(
+            <div key={n} style={{background:"rgba(14,31,24,.5)",border:"1px solid rgba(61,122,85,.2)",borderRadius:"var(--radius-sm)",padding:"1.25rem"}}>
+              <div style={{fontSize:"1.5rem",marginBottom:".5rem"}}>{i}</div>
+              <div style={{fontWeight:700,marginBottom:".4rem"}}>{n}</div>
+              <p style={{color:"var(--text-muted)",fontSize:".82rem",lineHeight:1.6}}>{d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="contrato-box">
+        <h3>📜 Mini-Contrato — Términos y Condiciones</h3>
+        <div className="contrato-body">
+          <h4>1. OBJETO DEL CONTRATO</h4>
+          <p>El presente instrumento regula las condiciones de prestación de servicios de DestinosVE Portal Turístico para aliados comerciales y usuarios que contraten servicios de difusión, vinculación o paquetes turísticos a través de la plataforma.</p>
+          <h4>2. PAGOS POR CUOTAS</h4>
+          <p>Los convenios podrán pagarse en hasta tres (3) cuotas. La primera cuota (mínimo 40% del monto total) deberá ser cancelada al momento de la firma del acuerdo. Las cuotas subsiguientes tendrán fechas límite establecidas en el convenio particular.</p>
+          <h4>3. FECHAS LÍMITE Y PENALIZACIONES</h4>
+          <p>El incumplimiento en el pago de una cuota dentro de los cinco (5) días hábiles siguientes a la fecha acordada generará un recargo del 5% sobre el saldo pendiente. Luego de quince (15) días de mora, DestinosVE se reserva el derecho de suspender la vinculación del aliado en la plataforma sin previo aviso.</p>
+          <h4>4. POLÍTICA DE REEMBOLSO</h4>
+          <p>Cancelaciones con más de 15 días de anticipación: reembolso del 80% del monto pagado. Cancelaciones entre 7 y 14 días: reembolso del 50%. Cancelaciones con menos de 7 días: sin derecho a reembolso. Los reembolsos se procesarán en un plazo de 10 días hábiles.</p>
+          <h4>5. EJECUCIÓN DEL SERVICIO</h4>
+          <p>Ningún servicio turístico, publicación o vinculación será ejecutado hasta tanto no se haya recibido y verificado el pago correspondiente (total o primera cuota en el caso de pagos fraccionados). DestinosVE se reserva el derecho de suspender servicios ante pagos pendientes o disputas no resueltas.</p>
+          <h4>6. ACEPTACIÓN</h4>
+          <p>El envío de un mensaje de consulta y/o comprobante de pago a través de los canales de DestinosVE implica la aceptación íntegra de los presentes términos y condiciones por parte del usuario o empresa aliada.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Dashboard
+function Dashboard({ messages, allies, destinations }) {
+  const leads = messages.length;
+  const managed = messages.filter(m=>m.status==="Gestionada").length;
+  const projections = [
+    {pkg:"Alianza Básica (Mensual)",units:8,price:150,total:1200},
+    {pkg:"Alianza Premium (Mensual)",units:4,price:350,total:1400},
+    {pkg:"Paquete Publicitario",units:3,price:500,total:1500},
+    {pkg:"Vinculación por Destino",units:12,price:80,total:960},
+  ];
+  const totalRevenue = projections.reduce((s,p)=>s+p.total,0);
+  const barData = [
+    {label:"Ene",val:35,pct:35,color:"#3D7A55"},
+    {label:"Feb",val:52,pct:52,color:"#C9A84C"},
+    {label:"Mar",val:48,pct:48,color:"#3D7A55"},
+    {label:"Abr",val:71,pct:71,color:"#C9A84C"},
+    {label:"May",val:65,pct:65,color:"#3D7A55"},
+    {label:"Jun",val:88,pct:88,color:"#C9A84C"},
+  ];
+  const pieData = [
+    {color:"#C9A84C",label:"Hoteles",val:"32%"},
+    {color:"#3D7A55",label:"Tours & Guías",val:"28%"},
+    {color:"#3498DB",label:"Aerolíneas",val:"22%"},
+    {color:"#E74C3C",label:"Restaurantes",val:"18%"},
+  ];
+  return (
+    <div className="section">
+      <div className="section-header">
+        <div className="section-tag">Módulo 05 — Dashboard</div>
+        <h2 className="section-title">Simulación de Negocio — Métricas</h2>
+        <p className="section-sub">Panel de control visual con KPIs, proyecciones de ingresos y análisis de la red de alianzas.</p>
+      </div>
+      <div className="metrics-grid">
+        <div className="metric-card gold"><div className="metric-icon">📥</div><div className="metric-val">{leads}</div><div className="metric-label">Total Consultas / Leads</div><div className="metric-trend">↑ +{managed} gestionadas</div></div>
+        <div className="metric-card green"><div className="metric-icon">🤝</div><div className="metric-val">{allies.length}</div><div className="metric-label">Aliados Activos</div><div className="metric-trend">↑ Red en crecimiento</div></div>
+        <div className="metric-card blue"><div className="metric-icon">🗺</div><div className="metric-val">{destinations.length}</div><div className="metric-label">Destinos Catalogados</div><div className="metric-trend">↑ 6 estados cubiertos</div></div>
+        <div className="metric-card red"><div className="metric-icon">💰</div><div className="metric-val">${totalRevenue.toLocaleString()}</div><div className="metric-label">Proyección de Ingresos</div><div className="metric-trend">↑ Simulación mensual</div></div>
+      </div>
+      <div className="charts-grid">
+        <div className="chart-card">
+          <h4>📈 Consultas por Mes (Simulación)</h4>
+          <div className="bar-chart">
+            {barData.map(b=>(
+              <div key={b.label} className="bar-row">
+                <div className="bar-label">{b.label}</div>
+                <div className="bar-track"><div className="bar-fill" style={{width:`${b.pct}%`,background:b.color}}>{b.val}</div></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="chart-card">
+          <h4>🥧 Distribución de Aliados por Categoría</h4>
+          <div className="pie-chart-visual" style={{marginTop:"1rem"}}>
+            {pieData.map(p=>(
+              <div key={p.label} className="pie-row">
+                <div className="pie-dot" style={{background:p.color}}/>
+                <div className="pie-label">{p.label}</div>
+                <div className="pie-val">{p.val}</div>
+                <div style={{width:`${parseInt(p.val)}%`,height:"8px",background:p.color,borderRadius:"4px",marginLeft:".5rem",maxWidth:"100px"}}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="chart-card">
+        <h4>💼 Proyección de Ingresos por Paquetes</h4>
+        <table className="projection-table" style={{marginTop:"1rem"}}>
+          <thead><tr><th>Paquete</th><th>Unidades</th><th>Precio Unit.</th><th>Total</th></tr></thead>
+          <tbody>
+            {projections.map(p=>(
+              <tr key={p.pkg}><td>{p.pkg}</td><td>{p.units}</td><td>${p.price}</td><td style={{color:"var(--gold)",fontWeight:700}}>${p.total.toLocaleString()}</td></tr>
+            ))}
+            <tr><td colSpan={3} style={{fontWeight:700,color:"var(--text)"}}>TOTAL MENSUAL PROYECTADO</td><td style={{color:"var(--gold-light)",fontWeight:900,fontSize:"1rem"}}>${totalRevenue.toLocaleString()}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── ADMIN PANEL ────────────────────────────────────────────────────────────
+function AdminPanel({ messages, setMessages, destinations, setDestinations, allies, setAllies, onLogout }) {
+  const [tab,setTab] = useState("inbox");
+  const [selMsg,setSelMsg] = useState(null);
+  const [newDest,setNewDest] = useState({title:"",state:"",municipality:"",category:"Naturaleza",tags:"",emoji:"🏞",description:"",access:"",nearbyPlaces:""});
+  const [newAlly,setNewAlly] = useState({name:"",category:"Hoteles",emoji:"🏨",description:"",web:"",email:"",phone:""});
+  const [destSuccess,setDestSuccess] = useState(false);
+  const [allySuccess,setAllySuccess] = useState(false);
+  const unread = messages.filter(m=>!m.read).length;
+
+  const markRead = (msg) => {
+    setMessages(prev=>prev.map(m=>m.id===msg.id?{...m,read:true}:m));
+    setSelMsg({...msg,read:true});
+  };
+  const changeStatus = (id,status) => {
+    setMessages(prev=>prev.map(m=>m.id===id?{...m,status}:m));
+    setSelMsg(prev=>prev?{...prev,status}:prev);
+  };
+  const addDest = () => {
+    if(!newDest.title||!newDest.state) return;
+    const d = {...newDest,id:Date.now(),tags:newDest.tags.split(",").map(t=>t.trim()).filter(Boolean),nearbyPlaces:newDest.nearbyPlaces.split(",").map(t=>t.trim()).filter(Boolean),color:"#1A3A2A",allies:[]};
+    setDestinations(prev=>[...prev,d]);
+    setNewDest({title:"",state:"",municipality:"",category:"Naturaleza",tags:"",emoji:"🏞",description:"",access:"",nearbyPlaces:""});
+    setDestSuccess(true); setTimeout(()=>setDestSuccess(false),3000);
+  };
+  const addAlly = () => {
+    if(!newAlly.name) return;
+    const a = {...newAlly,id:Date.now(),contact:{web:newAlly.web,email:newAlly.email,phone:newAlly.phone},destinations:[]};
+    setAllies(prev=>[...prev,a]);
+    setNewAlly({name:"",category:"Hoteles",emoji:"🏨",description:"",web:"",email:"",phone:""});
+    setAllySuccess(true); setTimeout(()=>setAllySuccess(false),3000);
+  };
+  const delDest = (id) => setDestinations(prev=>prev.filter(d=>d.id!==id));
+  const delAlly = (id) => setAllies(prev=>prev.filter(a=>a.id!==id));
+
+  const sidebar = [
+    {id:"inbox",icon:"📥",label:"Bandeja de Mensajes",badge:unread>0?unread:null},
+    {id:"destinations",icon:"🗺",label:"Gestionar Destinos"},
+    {id:"allies",icon:"🤝",label:"Gestionar Aliados"},
+    {id:"payments",icon:"💳",label:"Métodos de Pago"},
+    {id:"metrics",icon:"📊",label:"Resumen Métricas"},
+  ];
+
+  return (
+    <div className="admin-wrapper">
+      <div className="admin-sidebar">
+        <div className="admin-logo">
+          <h3 style={{color:"var(--gold)"}}>⚙ Backoffice</h3>
+          <p>DestinosVE Admin</p>
+        </div>
+        <div className="sidebar-menu">
+          {sidebar.map(s=>(
+            <button key={s.id} className={`sidebar-item ${tab===s.id?"active":""}`} onClick={()=>setTab(s.id)}>
+              <span>{s.icon}</span><span>{s.label}</span>
+              {s.badge&&<span className="sidebar-badge">{s.badge}</span>}
+            </button>
+          ))}
+          <div style={{height:"1px",background:"rgba(61,122,85,.2)",margin:".75rem 0"}}/>
+          <button className="sidebar-item" onClick={onLogout}><span>🚪</span><span>Cerrar Sesión</span></button>
+        </div>
+      </div>
+      <div className="admin-content">
+        {tab==="inbox" && (
+          <>
+            <div className="admin-header"><h2>📥 Bandeja de Mensajes</h2><div className="admin-actions"><span style={{color:"var(--text-muted)",fontSize:".85rem"}}>{messages.length} consulta(s) | {unread} sin leer</span></div></div>
+            <div className="inbox-grid">
+              <div className="inbox-list">
+                {messages.map(m=>(
+                  <div key={m.id} className={`inbox-item ${selMsg?.id===m.id?"active":""} ${!m.read?"unread":""}`} onClick={()=>markRead(m)}>
+                    <div className="inbox-sender">{m.name} — {m.company}</div>
+                    <div className="inbox-preview">{m.message}</div>
+                    <div className="inbox-time">{m.date} · <span style={{color:m.status==="Gestionada"?"#27AE60":m.status==="En proceso"?"#F39C12":"var(--text-dim)"}}>{m.status}</span></div>
+                  </div>
+                ))}
+              </div>
+              <div className="inbox-detail">
+                {!selMsg?<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"200px",color:"var(--text-dim)",flexDirection:"column",gap:"1rem"}}><span style={{fontSize:"3rem"}}>📭</span><p>Selecciona un mensaje para leerlo</p></div>:(
+                  <>
+                    <div className="inbox-detail-header">
+                      <h3>Consulta de: {selMsg.name}</h3>
+                      <div className="inbox-meta">
+                        <div className="inbox-meta-item"><strong>Empresa:</strong> {selMsg.company}</div>
+                        <div className="inbox-meta-item"><strong>Email:</strong> {selMsg.email}</div>
+                        <div className="inbox-meta-item"><strong>Teléfono:</strong> {selMsg.phone}</div>
+                        <div className="inbox-meta-item"><strong>Fecha:</strong> {selMsg.date}</div>
+                      </div>
+                    </div>
+                    <p className="inbox-message">{selMsg.message}</p>
+                    <div className="inbox-status-row">
+                      <span style={{fontSize:".82rem",color:"var(--text-muted)"}}>Estado:</span>
+                      <select className="status-sel" value={selMsg.status} onChange={e=>changeStatus(selMsg.id,e.target.value)}>
+                        <option>Sin gestionar</option><option>En proceso</option><option>Gestionada</option>
+                      </select>
+                      {selMsg.status==="Gestionada"&&<span className="btn-managed">✅ Gestionada</span>}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+        {tab==="destinations" && (
+          <>
+            <div className="admin-header"><h2>🗺 Gestionar Destinos</h2></div>
+            <div className="add-form" style={{marginBottom:"2rem"}}>
+              <h3 style={{marginBottom:"1.25rem",fontSize:"1rem",color:"var(--gold)"}}>➕ Agregar Nuevo Destino</h3>
+              <div className="form-grid">
+                <div className="form-group"><label className="form-label">Título</label><input className="form-input" value={newDest.title} onChange={e=>setNewDest({...newDest,title:e.target.value})} placeholder="Nombre del destino"/></div>
+                <div className="form-group"><label className="form-label">Emoji</label><input className="form-input" value={newDest.emoji} onChange={e=>setNewDest({...newDest,emoji:e.target.value})} placeholder="🏞"/></div>
+                <div className="form-group"><label className="form-label">Estado</label><input className="form-input" value={newDest.state} onChange={e=>setNewDest({...newDest,state:e.target.value})} placeholder="Ej: Bolívar"/></div>
+                <div className="form-group"><label className="form-label">Municipio</label><input className="form-input" value={newDest.municipality} onChange={e=>setNewDest({...newDest,municipality:e.target.value})} placeholder="Ej: Gran Sabana"/></div>
+                <div className="form-group"><label className="form-label">Categoría</label>
+                  <select className="form-select" value={newDest.category} onChange={e=>setNewDest({...newDest,category:e.target.value})}>
+                    {["Naturaleza","Playa","Montaña","Ecoturismo","Cultura","Aventura"].map(c=><option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="form-group"><label className="form-label">Etiquetas (separadas por coma)</label><input className="form-input" value={newDest.tags} onChange={e=>setNewDest({...newDest,tags:e.target.value})} placeholder="Cascada, Selva, Aventura"/></div>
+              </div>
+              <div className="form-group"><label className="form-label">Descripción</label><textarea className="form-textarea" value={newDest.description} onChange={e=>setNewDest({...newDest,description:e.target.value})} placeholder="Descripción extensa del destino..."/></div>
+              <div className="form-group"><label className="form-label">Vías de Acceso</label><input className="form-input" value={newDest.access} onChange={e=>setNewDest({...newDest,access:e.target.value})} placeholder="Cómo llegar al destino..."/></div>
+              <div className="form-group"><label className="form-label">Lugares Cercanos (separados por coma)</label><input className="form-input" value={newDest.nearbyPlaces} onChange={e=>setNewDest({...newDest,nearbyPlaces:e.target.value})} placeholder="Lugar 1, Lugar 2, ..."/></div>
+              {destSuccess&&<div className="success-msg" style={{marginBottom:"1rem"}}>✅ Destino agregado exitosamente.</div>}
+              <button className="btn-action primary" onClick={addDest}>💾 Guardar Destino</button>
+            </div>
+            <h3 style={{marginBottom:"1rem",fontSize:"1rem",color:"var(--gold)"}}>📋 Destinos Actuales ({destinations.length})</h3>
+            <div style={{display:"flex",flexDirection:"column",gap:".75rem"}}>
+              {destinations.map(d=>(
+                <div key={d.id} style={{background:"var(--card)",border:"1px solid rgba(61,122,85,.2)",borderRadius:"var(--radius-sm)",padding:"1rem",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"1rem"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:".75rem"}}>
+                    <span style={{fontSize:"1.5rem"}}>{d.emoji}</span>
+                    <div><div style={{fontWeight:700,fontSize:".9rem"}}>{d.title}</div><div style={{color:"var(--text-muted)",fontSize:".78rem"}}>{d.state} — {d.category}</div></div>
+                  </div>
+                  <button onClick={()=>delDest(d.id)} style={{background:"rgba(207,20,43,.15)",border:"1px solid rgba(207,20,43,.3)",color:"#E74C3C",borderRadius:"var(--radius-sm)",padding:".35rem .75rem",cursor:"pointer",fontSize:".78rem"}}>🗑 Eliminar</button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {tab==="allies" && (
+          <>
+            <div className="admin-header"><h2>🤝 Gestionar Aliados</h2></div>
+            <div className="add-form" style={{marginBottom:"2rem"}}>
+              <h3 style={{marginBottom:"1.25rem",fontSize:"1rem",color:"var(--gold)"}}>➕ Agregar Nuevo Aliado</h3>
+              <div className="form-grid">
+                <div className="form-group"><label className="form-label">Nombre</label><input className="form-input" value={newAlly.name} onChange={e=>setNewAlly({...newAlly,name:e.target.value})} placeholder="Nombre de la empresa"/></div>
+                <div className="form-group"><label className="form-label">Emoji</label><input className="form-input" value={newAlly.emoji} onChange={e=>setNewAlly({...newAlly,emoji:e.target.value})} placeholder="🏨"/></div>
+                <div className="form-group"><label className="form-label">Categoría</label>
+                  <select className="form-select" value={newAlly.category} onChange={e=>setNewAlly({...newAlly,category:e.target.value})}>
+                    {["Hoteles","Aerolíneas","Restaurantes","Tours & Guías","Transporte"].map(c=><option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="form-group"><label className="form-label">Sitio Web</label><input className="form-input" value={newAlly.web} onChange={e=>setNewAlly({...newAlly,web:e.target.value})} placeholder="www.empresa.com"/></div>
+                <div className="form-group"><label className="form-label">Email</label><input className="form-input" value={newAlly.email} onChange={e=>setNewAlly({...newAlly,email:e.target.value})} placeholder="info@empresa.com"/></div>
+                <div className="form-group"><label className="form-label">Teléfono</label><input className="form-input" value={newAlly.phone} onChange={e=>setNewAlly({...newAlly,phone:e.target.value})} placeholder="+58 XXX XXX-XXXX"/></div>
+              </div>
+              <div className="form-group"><label className="form-label">Descripción</label><textarea className="form-textarea" style={{minHeight:"80px"}} value={newAlly.description} onChange={e=>setNewAlly({...newAlly,description:e.target.value})} placeholder="Descripción del aliado..."/></div>
+              {allySuccess&&<div className="success-msg" style={{marginBottom:"1rem"}}>✅ Aliado agregado exitosamente.</div>}
+              <button className="btn-action primary" onClick={addAlly}>💾 Guardar Aliado</button>
+            </div>
+            <h3 style={{marginBottom:"1rem",fontSize:"1rem",color:"var(--gold)"}}>📋 Aliados Actuales ({allies.length})</h3>
+            <div style={{display:"flex",flexDirection:"column",gap:".75rem"}}>
+              {allies.map(a=>(
+                <div key={a.id} style={{background:"var(--card)",border:"1px solid rgba(61,122,85,.2)",borderRadius:"var(--radius-sm)",padding:"1rem",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"1rem"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:".75rem"}}>
+                    <span style={{fontSize:"1.5rem"}}>{a.emoji}</span>
+                    <div><div style={{fontWeight:700,fontSize:".9rem"}}>{a.name}</div><div style={{color:"var(--text-muted)",fontSize:".78rem"}}>{a.category}</div></div>
+                  </div>
+                  <button onClick={()=>delAlly(a.id)} style={{background:"rgba(207,20,43,.15)",border:"1px solid rgba(207,20,43,.3)",color:"#E74C3C",borderRadius:"var(--radius-sm)",padding:".35rem .75rem",cursor:"pointer",fontSize:".78rem"}}>🗑 Eliminar</button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {tab==="payments" && (
+          <><div className="admin-header"><h2>💳 Configurar Métodos de Pago</h2></div>
+          <div style={{background:"var(--card)",border:"1px solid rgba(61,122,85,.2)",borderRadius:"var(--radius)",padding:"1.5rem"}}>
+            <p style={{color:"var(--text-muted)",marginBottom:"1.5rem",fontSize:".9rem"}}>Los métodos de pago actualmente configurados para DestinosVE son:</p>
+            {[{icon:"🏦",name:"Transferencia Bancaria",status:"✅ Activo"},{icon:"💵",name:"Divisas USD/EUR",status:"✅ Activo"},{icon:"📱",name:"Plataformas Digitales",status:"✅ Activo"},{icon:"🇻🇪",name:"Pago Móvil",status:"✅ Activo"}].map(m=>(
+              <div key={m.name} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:".85rem",borderBottom:"1px solid rgba(61,122,85,.15)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:".75rem"}}><span style={{fontSize:"1.3rem"}}>{m.icon}</span><span style={{fontSize:".9rem"}}>{m.name}</span></div>
+                <span style={{color:"#27AE60",fontSize:".82rem"}}>{m.status}</span>
+              </div>
+            ))}
+          </div></>
+        )}
+        {tab==="metrics" && (
+          <><div className="admin-header"><h2>📊 Resumen de Métricas</h2></div>
+          <div className="metrics-grid">
+            <div className="metric-card gold"><div className="metric-icon">📥</div><div className="metric-val">{messages.length}</div><div className="metric-label">Total Consultas</div></div>
+            <div className="metric-card green"><div className="metric-icon">✅</div><div className="metric-val">{messages.filter(m=>m.status==="Gestionada").length}</div><div className="metric-label">Gestionadas</div></div>
+            <div className="metric-card blue"><div className="metric-icon">🤝</div><div className="metric-val">{allies.length}</div><div className="metric-label">Aliados Activos</div></div>
+            <div className="metric-card red"><div className="metric-icon">🗺</div><div className="metric-val">{destinations.length}</div><div className="metric-label">Destinos</div></div>
+          </div></>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Login
+function Login({ onLogin }) {
+  const [u,setU]=useState(""); const [p,setP]=useState(""); const [err,setErr]=useState("");
+  const handle = (e) => {
+    e.preventDefault();
+    if(u==="admin" && p==="destinosve2025"){onLogin();return;}
+    setErr("Credenciales incorrectas. Usuario: admin | Contraseña: destinosve2025");
+  };
+  return (
+    <div className="login-wrapper">
+      <div className="login-box">
+        <div style={{textAlign:"center",marginBottom:"1.5rem",fontSize:"2.5rem"}}>🔐</div>
+        <h2 className="login-title">Acceso Administrativo</h2>
+        <p className="login-sub">Portal DestinosVE — Backoffice</p>
+        <form onSubmit={handle}>
+          <div className="form-group"><label className="form-label">Usuario</label><input className="form-input" value={u} onChange={e=>setU(e.target.value)} placeholder="admin"/></div>
+          <div className="form-group"><label className="form-label">Contraseña</label><input type="password" className="form-input" value={p} onChange={e=>setP(e.target.value)} placeholder="••••••••••"/></div>
+          {err&&<div className="login-err">{err}</div>}
+          <button type="submit" className="submit-btn" style={{marginTop:"1.25rem"}}>Ingresar al Panel</button>
+        </form>
+        <p style={{textAlign:"center",color:"var(--text-dim)",fontSize:".75rem",marginTop:"1rem"}}>Credenciales demo: admin / destinosve2025</p>
+      </div>
+    </div>
+  );
+}
+
+function Footer({ setPage }) {
+  return (
+    <footer className="footer">
+      <div className="footer-grid">
+        <div className="footer-brand">
+          <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:".5rem"}}>
+            <div className="brand-flag"><span/><span/><span/></div>
+            <h3 style={{color:"var(--gold)",fontFamily:"'Playfair Display',serif"}}>DestinosVE</h3>
+          </div>
+          <p>Portal turístico venezolano que conecta viajeros con los destinos más hermosos de Venezuela, construyendo una red de alianzas estratégicas para el desarrollo del turismo nacional.</p>
+        </div>
+        <div className="footer-col"><h4>Destinos</h4>
+          {["Salto Ángel","Los Roques","Mérida","Morrocoy","Henri Pittier"].map(d=><a key={d} href="#" onClick={e=>{e.preventDefault();setPage("destinations");}}>{d}</a>)}
+        </div>
+        <div className="footer-col"><h4>Servicios</h4>
+          {["Red de Alianzas","Consultas","Pagos","Dashboard"].map(s=><a key={s} href="#">{s}</a>)}
+        </div>
+        <div className="footer-col"><h4>Legal</h4>
+          <a href="#">Términos y Condiciones</a>
+          <a href="#">Política de Privacidad</a>
+          <a href="#">Política de Reembolso</a>
+          <a href="#">Convenios Comerciales</a>
+        </div>
+      </div>
+      <div className="footer-bottom">
+        <p>© 2025 DestinosVE — Portal Turístico Venezolano · Proyecto Universitario UNEXCA · Todos los derechos reservados</p>
+      </div>
+    </footer>
+  );
+}
+
+// ── APP PRINCIPAL ──────────────────────────────────────────────────────────
+export default function App() {
+  const [page, setPage] = useState("home");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [destinations, setDestinations] = useState(INIT_DESTINATIONS);
+  const [allies, setAllies] = useState(INIT_ALLIES);
+  const [messages, setMessages] = useState(INIT_MESSAGES);
+
+  const handleContact = (form) => {
+    const msg = { id: Date.now(), ...form, date: new Date().toLocaleString("es-VE"), status: "Sin gestionar", read: false };
+    setMessages(prev => [msg, ...prev]);
+  };
+
+  useEffect(() => { window.scrollTo(0, 0); }, [page]);
+
+  const showAdmin = page === "admin";
+
+  return (
+    <>
+      <style>{STYLE}</style>
+      {!showAdmin && <Navbar page={page} setPage={setPage} isAdmin={isAdmin} />}
+      <div style={showAdmin ? {} : { paddingTop: "64px" }}>
+        {showAdmin ? (
+          isAdmin
+            ? <AdminPanel messages={messages} setMessages={setMessages} destinations={destinations} setDestinations={setDestinations} allies={allies} setAllies={setAllies} onLogout={() => { setIsAdmin(false); setPage("home"); }} />
+            : <Login onLogin={() => setIsAdmin(true)} />
+        ) : (
+          <>
+            {page === "home" && <>
+              <Hero setPage={setPage} />
+              <div className="divider" />
+              <Destinations destinations={destinations} allies={allies} />
+              <div className="divider" />
+              <Allies allies={allies} destinations={destinations} />
+              <div className="divider" />
+              <Contact onSubmit={handleContact} />
+              <Footer setPage={setPage} />
+            </>}
+            {page === "destinations" && <><Destinations destinations={destinations} allies={allies} /><Footer setPage={setPage}/></>}
+            {page === "allies" && <><Allies allies={allies} destinations={destinations} /><Footer setPage={setPage}/></>}
+            {page === "contact" && <><Contact onSubmit={handleContact} /><Footer setPage={setPage}/></>}
+            {page === "payments" && <><Payments /><Footer setPage={setPage}/></>}
+            {page === "dashboard" && <><Dashboard messages={messages} allies={allies} destinations={destinations} /><Footer setPage={setPage}/></>}
+          </>
+        )}
+      </div>
+    </>
+  );
+}
