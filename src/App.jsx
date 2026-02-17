@@ -310,8 +310,9 @@ h1,h2,h3,h4,h5 { font-family:'Playfair Display',serif; }
 .btn-managed:hover{background:rgba(39,174,96,.25);}
 
 /* ── FORM AGREGAR DESTINO ── */
-.add-form{background:var(--card);border:1px solid rgba(61,122,85,.2);border-radius:var(--radius);padding:2rem;max-width:800px;}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.add-form{background:var(--card);border:1px solid rgba(61,122,85,.2);border-radius:var(--radius);padding:2rem;width:100%;max-width:100%;}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;}
+.admin-content{margin-left:240px;padding:2.5rem;min-height:calc(100vh - 64px);width:calc(100% - 240px);overflow-x:hidden;}
 
 /* ── LOGIN ── */
 .login-wrapper{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--dark);padding:2rem;}
